@@ -17,7 +17,7 @@ intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 
 # Define the channel id where the clips will be posted
-CHANNEL_WHITELIST = [id.strip() for id in os.getenv("CHANNEL_ID", "").split(",") if id]
+CHANNEL_WHITELIST = [id.strip() for id in os.getenv("CHANNEL_WHITELIST", "").split(",") if id]
 TOKEN = os.getenv("TOKEN")
 CLIPS_API_URL = os.getenv("API_URL")
 APIKEY = os.getenv("APIKEY")
