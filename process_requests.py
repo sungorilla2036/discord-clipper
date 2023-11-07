@@ -96,7 +96,6 @@ async def submit_clip_to_db(source_url, start, end, title, clip_url):
     start_seconds = time_str_to_seconds(start)
     duration = time_str_to_seconds(end) - start_seconds
     tag_ids = []
-    print(f"submitting clip {clip_url}")
     async with aiohttp.ClientSession() as session:
         response = await session.post(
             CLIPS_API_URL + "/clips",
@@ -115,7 +114,6 @@ async def submit_clip_to_db(source_url, start, end, title, clip_url):
             },
         )
         clips = await response.json(content_type=None)
-        print(clips)
 
         for tag in tags:
             response = await session.get(
@@ -151,7 +149,6 @@ async def submit_clip_to_db(source_url, start, end, title, clip_url):
                     "Authorization": f"Bearer {APIKEY}",
                 },
             )
-            print(response)
 
 
 # Define a function to download a video from a url
@@ -176,16 +173,12 @@ async def download_video(url, start, end, output):
         "mp4",
     ]
     cmd = " ".join(args)
-    print(cmd)
     proc = await asyncio.create_subprocess_shell(
         cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
     )
 
     stdout, stderr = await proc.communicate()
 
-    print(f"[{cmd!r} exited with {proc.returncode}]")
-    if stdout:
-        print(f"[stdout]\n{stdout.decode()}")
     if stderr:
         print(f"[stderr]\n{stderr.decode()}")
 
@@ -200,10 +193,8 @@ async def upload_file_tsh(file):
         response = await session.put(
             "https://transfer.sh/" + file, data=open(file, "rb")
         )
-        print(response)
         # Return the response url
         message = await response.text()
-        print(message)
         return message
 
 
@@ -235,7 +226,6 @@ async def upload_file_cb(file_path):
 # Define an async function to process a message that contains a clip command
 async def process_message(message):
     # Split the message by spaces
-    print(f"Processing message: {message.content}")
     args = message.content.split(maxsplit=4)
     # Check if the message has four arguments
     if len(args) == 5:
@@ -311,49 +301,50 @@ async def process_message(message):
 @client.event
 async def on_ready():
     # Print a message to the console
-    print(f"{client.user} has connected to Discord!")
+    print("Connected to Discord!")
     # Get the channel where the clips will be posted
     channel = client.get_channel(CHANNEL_ID)
-    print(channel.name)
-    # Get the current time
-    last_checked_time = datetime.now() - timedelta(minutes=INTERVAL_MINUTES)
-    # Get the messages that mention the bot in the last hour
-    messages = [message async for message in channel.history(after=last_checked_time)]
-    print(messages)
 
-    tasks = []
-    messages_to_process = []
-    ffmpeg_needed = False
-    for message in messages:
-        if len(message.mentions) == 1 and message.mentions[0].id == client.user.id:
-            if "youtube.com" in message.content or "youtu.be" in message.content:
-                ffmpeg_needed = True
-            messages_to_process.append(message)
+    if channel:
+        # Get the current time
+        last_checked_time = datetime.now() - timedelta(minutes=INTERVAL_MINUTES)
+        # Get the messages that mention the bot in the last hour
+        messages = [
+            message async for message in channel.history(after=last_checked_time)
+        ]
 
-    if ffmpeg_needed:
-        print("checking ffmpeg...")
-        try:
-            output = subprocess.check_output(["ffmpeg", "-version"])
-            print("ffmpeg is available")
-            print(output.decode("utf-8"))
-        except subprocess.CalledProcessError as e:
-            print("ffmpeg is not available")
-            print("downloading ffmpeg...")
-            proc = await asyncio.create_subprocess_shell(
-                "ffdl install",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            stdout, stderr = await proc.communicate()
-            if stdout:
-                print(f"[stdout]\n{stdout.decode()}")
-            if stderr:
-                print(f"[stderr]\n{stderr.decode()}")
+        tasks = []
+        messages_to_process = []
+        ffmpeg_needed = False
+        for message in messages:
+            if len(message.mentions) == 1 and message.mentions[0].id == client.user.id:
+                if "youtube.com" in message.content or "youtu.be" in message.content:
+                    ffmpeg_needed = True
+                messages_to_process.append(message)
 
-    # Process each message
-    for message in messages_to_process:
-        tasks.append(process_message(message))
-    await asyncio.gather(*tasks)
+        if ffmpeg_needed:
+            print("checking ffmpeg...")
+            try:
+                subprocess.check_output(["ffmpeg", "-version"])
+                print("ffmpeg is available")
+            except subprocess.CalledProcessError as e:
+                print("ffmpeg is not available")
+                print("downloading ffmpeg...")
+                proc = await asyncio.create_subprocess_shell(
+                    "ffdl install",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, stderr = await proc.communicate()
+                if stdout:
+                    print(f"[stdout]\n{stdout.decode()}")
+                if stderr:
+                    print(f"[stderr]\n{stderr.decode()}")
+
+        # Process each message
+        for message in messages_to_process:
+            tasks.append(process_message(message))
+        await asyncio.gather(*tasks)
     await client.close()
 
 
