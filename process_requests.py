@@ -10,6 +10,7 @@ import hashlib
 import asyncio
 import ffmpeg_downloader as ffdl
 import subprocess
+import re
 
 intents = discord.Intents.default()
 
@@ -17,7 +18,9 @@ intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 
 # Define the channel id where the clips will be posted
-CHANNEL_WHITELIST = [id.strip() for id in os.getenv("CHANNEL_WHITELIST", "").split(",") if id]
+CHANNEL_WHITELIST = [
+    id.strip() for id in os.getenv("CHANNEL_WHITELIST", "").split(",") if id
+]
 TOKEN = os.getenv("TOKEN")
 CLIPS_API_URL = os.getenv("API_URL")
 APIKEY = os.getenv("APIKEY")
@@ -148,7 +151,7 @@ async def submit_clip_to_db(source_url, start, end, title, clip_url):
 
 
 # Define a function to download a video from a url
-async def download_video(url, start, end, output):
+async def download_video(url, start, end, output, max_filesize_mb=None):
     video = url
     if url.startswith("https://kick.com/video/"):
         response = requests.get(
@@ -168,6 +171,11 @@ async def download_video(url, start, end, output):
         "--merge-output-format",
         "mp4",
     ]
+
+    if max_filesize_mb:
+        output = "[lowres]_" + output
+        args.append(f"-f best[filesize<{max_filesize_mb}M]")
+
     cmd = " ".join(args)
     proc = await asyncio.create_subprocess_shell(
         cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
@@ -222,7 +230,7 @@ async def upload_file_cb(file_path):
 # Define an async function to process a message that contains a clip command
 async def process_message(message):
     # Split the message by spaces
-    args = message.content.split(maxsplit=4)
+    args = re.sub(r"\s+", " ", message.content).strip().split(maxsplit=4)
     # Check if the message has four arguments
     if len(args) == 5:
         # Extract the video url, start time, end time, and title
@@ -237,7 +245,10 @@ async def process_message(message):
                 "https://kick.com/api/v1/channels/infrared", impersonate="chrome101"
             )
             response_json_obj = response.json()
-            video_url = "https://kick.com/video/" + response_json_obj["previous_livestreams"][0]["video"]["uuid"]
+            video_url = (
+                "https://kick.com/video/"
+                + response_json_obj["previous_livestreams"][0]["video"]["uuid"]
+            )
             reply_text = f"{title} <{video_url}>"
 
         file_hash = hashlib.md5(
