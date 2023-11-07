@@ -340,6 +340,7 @@ async def on_ready():
                     if stderr:
                         print(f"[stderr]\n{stderr.decode()}")
 
+            print(f"Processing {len(messages_to_process)} messages...")
             # Process each message
             for message in messages_to_process:
                 tasks.append(process_message(message))
