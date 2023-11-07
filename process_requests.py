@@ -324,6 +324,10 @@ async def on_ready():
                 if (
                     len(message.mentions) == 1
                     and message.mentions[0].id == client.user.id
+                ) or (
+                    len(message.role_mentions) == 1
+                    and message.role_mentions[0].name == client.user.name
+                    and message.role_mentions[0].is_bot_managed()
                 ):
                     if (
                         "youtube.com" in message.content
