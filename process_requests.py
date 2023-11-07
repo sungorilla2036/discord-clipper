@@ -240,8 +240,14 @@ async def process_message(message):
     print(f"Processing message: {message.content}")
     args = message.content.split(maxsplit=4)
     # Check if the message has four arguments
-    if len(args) == 4 or len(args) == 5:
-        if len(args) == 4:
+    if len(args) == 5:
+        # Extract the video url, start time, end time, and title
+        video_url = args[1]
+        start_time = args[2]
+        end_time = args[3]
+        title = args[4]
+        reply_text = title
+        if video_url == "latest":
             # Extract the video url, start time, end time, and title
             response = requests.get(
                 "https://kick.com/api/v1/channels/infrared", impersonate="chrome101"
@@ -255,13 +261,6 @@ async def process_message(message):
             end_time = args[2]
             title = args[3]
             reply_text = f"{title} <{video_url}>"
-        else:
-            # Extract the video url, start time, end time, and title
-            video_url = args[1]
-            start_time = args[2]
-            end_time = args[3]
-            title = args[4]
-            reply_text = title
 
         file_hash = hashlib.md5(
             (start_time + "-" + end_time + video_url).encode()
