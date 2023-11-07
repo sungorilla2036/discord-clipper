@@ -26,6 +26,7 @@ CLIPS_API_URL = os.getenv("API_URL")
 APIKEY = os.getenv(
     "APIKEY",
 )
+INTERVAL_MINUTES = int(os.getenv("INTERVAL_MINUTES", "15"))
 
 
 def get_video_info(url):
@@ -82,8 +83,6 @@ def extract_tags(string):
         # if we encounter an opening bracket, add the tag to the list and skip the bracket
         elif string[i] == "[":
             tags.append(tag.lower())
-            i -= 1
-            continue
         # otherwise, add the character to the tag
         else:
             tag = string[i] + tag
@@ -318,7 +317,7 @@ async def on_ready():
     channel = client.get_channel(channel_id)
     print(channel.name)
     # Get the current time
-    last_checked_time = datetime.now() - timedelta(hours=1)
+    last_checked_time = datetime.now() - timedelta(minutes=INTERVAL_MINUTES)
     # Get the messages that mention the bot in the last hour
     messages = [message async for message in channel.history(after=last_checked_time)]
     print(messages)
