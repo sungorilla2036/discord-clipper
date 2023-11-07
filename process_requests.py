@@ -17,15 +17,14 @@ intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 
 # Define the channel id where the clips will be posted
-channel_id = int(
+CHANNEL_ID = int(
     os.getenv(
         "CHANNEL_ID",
     )
 )
+TOKEN = os.getenv("TOKEN")
 CLIPS_API_URL = os.getenv("API_URL")
-APIKEY = os.getenv(
-    "APIKEY",
-)
+APIKEY = os.getenv("APIKEY")
 INTERVAL_MINUTES = int(os.getenv("INTERVAL_MINUTES", "15"))
 
 
@@ -314,7 +313,7 @@ async def on_ready():
     # Print a message to the console
     print(f"{client.user} has connected to Discord!")
     # Get the channel where the clips will be posted
-    channel = client.get_channel(channel_id)
+    channel = client.get_channel(CHANNEL_ID)
     print(channel.name)
     # Get the current time
     last_checked_time = datetime.now() - timedelta(minutes=INTERVAL_MINUTES)
@@ -359,8 +358,4 @@ async def on_ready():
 
 
 # Run the bot with the token
-client.run(
-    os.getenv(
-        "TOKEN",
-    )
-)
+client.run(TOKEN)
