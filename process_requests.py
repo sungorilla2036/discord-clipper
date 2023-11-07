@@ -237,13 +237,7 @@ async def process_message(message):
                 "https://kick.com/api/v1/channels/infrared", impersonate="chrome101"
             )
             response_json_obj = response.json()
-            video_url = (
-                "https://kick.com/video/"
-                + response_json_obj["previous_livestreams"][0]["video"]["uuid"]
-            )
-            start_time = args[1]
-            end_time = args[2]
-            title = args[3]
+            video_url = "https://kick.com/video/" + response_json_obj["previous_livestreams"][0]["video"]["uuid"]
             reply_text = f"{title} <{video_url}>"
 
         file_hash = hashlib.md5(
