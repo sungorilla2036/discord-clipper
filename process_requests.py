@@ -17,11 +17,7 @@ intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 
 # Define the channel id where the clips will be posted
-CHANNEL_ID = int(
-    os.getenv(
-        "CHANNEL_ID",
-    )
-)
+CHANNEL_WHITELIST = [id.strip() for id in os.getenv("CHANNEL_ID", "").split(",") if id]
 TOKEN = os.getenv("TOKEN")
 CLIPS_API_URL = os.getenv("API_URL")
 APIKEY = os.getenv("APIKEY")
@@ -302,49 +298,58 @@ async def process_message(message):
 async def on_ready():
     # Print a message to the console
     print("Connected to Discord!")
-    # Get the channel where the clips will be posted
-    channel = client.get_channel(CHANNEL_ID)
 
-    if channel:
-        # Get the current time
-        last_checked_time = datetime.now() - timedelta(minutes=INTERVAL_MINUTES)
-        # Get the messages that mention the bot in the last hour
-        messages = [
-            message async for message in channel.history(after=last_checked_time)
-        ]
+    tasks = []
+    for channel_str in CHANNEL_WHITELIST:
+        channel_id = int(channel_str)
+        # Get the channel where the clips will be posted
+        channel = client.get_channel(channel_id)
 
-        tasks = []
-        messages_to_process = []
-        ffmpeg_needed = False
-        for message in messages:
-            if len(message.mentions) == 1 and message.mentions[0].id == client.user.id:
-                if "youtube.com" in message.content or "youtu.be" in message.content:
-                    ffmpeg_needed = True
-                messages_to_process.append(message)
+        if channel:
+            # Get the current time
+            last_checked_time = datetime.now() - timedelta(minutes=INTERVAL_MINUTES)
+            # Get the messages that mention the bot in the last hour
+            messages = [
+                message async for message in channel.history(after=last_checked_time)
+            ]
 
-        if ffmpeg_needed:
-            print("checking ffmpeg...")
-            try:
-                subprocess.check_output(["ffmpeg", "-version"])
-                print("ffmpeg is available")
-            except subprocess.CalledProcessError as e:
-                print("ffmpeg is not available")
-                print("downloading ffmpeg...")
-                proc = await asyncio.create_subprocess_shell(
-                    "ffdl install",
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                )
-                stdout, stderr = await proc.communicate()
-                if stdout:
-                    print(f"[stdout]\n{stdout.decode()}")
-                if stderr:
-                    print(f"[stderr]\n{stderr.decode()}")
+            messages_to_process = []
+            ffmpeg_needed = False
+            for message in messages:
+                if (
+                    len(message.mentions) == 1
+                    and message.mentions[0].id == client.user.id
+                ):
+                    if (
+                        "youtube.com" in message.content
+                        or "youtu.be" in message.content
+                    ):
+                        ffmpeg_needed = True
+                    messages_to_process.append(message)
 
-        # Process each message
-        for message in messages_to_process:
-            tasks.append(process_message(message))
-        await asyncio.gather(*tasks)
+            if ffmpeg_needed:
+                print("checking ffmpeg...")
+                try:
+                    subprocess.check_output(["ffmpeg", "-version"])
+                    print("ffmpeg is available")
+                except subprocess.CalledProcessError as e:
+                    print("ffmpeg is not available")
+                    print("downloading ffmpeg...")
+                    proc = await asyncio.create_subprocess_shell(
+                        "ffdl install",
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                    )
+                    stdout, stderr = await proc.communicate()
+                    if stdout:
+                        print(f"[stdout]\n{stdout.decode()}")
+                    if stderr:
+                        print(f"[stderr]\n{stderr.decode()}")
+
+            # Process each message
+            for message in messages_to_process:
+                tasks.append(process_message(message))
+    await asyncio.gather(*tasks)
     await client.close()
 
 
