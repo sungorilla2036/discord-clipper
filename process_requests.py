@@ -152,6 +152,7 @@ async def submit_clip_to_db(source_url, start, end, title, clip_url):
 
 # Define a function to download a video from a url
 async def download_video(url, start, end, output, max_filesize_mb=None):
+    print(ffdl.ffmpeg_path)
     print(f"Downloading file {output}...")
     video = url
     if url.startswith("https://kick.com/video/"):
