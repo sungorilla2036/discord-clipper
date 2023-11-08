@@ -317,10 +317,12 @@ async def on_ready():
         if channel:
             # Get the current time
             last_checked_time = datetime.now() - timedelta(minutes=INTERVAL_MINUTES)
+            print("Searching messages...")
             # Get the messages that mention the bot in the last hour
             messages = [
                 message async for message in channel.history(after=last_checked_time)
             ]
+            print(f"{len(messages)} messages retrieved")
 
             messages_to_process = []
             for message in messages:
@@ -336,10 +338,15 @@ async def on_ready():
 
             if len(messages_to_process) > 0:
                 print("checking ffmpeg...")
-                try:
-                    subprocess.check_output(["ffmpeg", "-version"])
+                p = await asyncio.create_subprocess_exec(
+                    ["ffmpeg", "-version"],
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout_data, stderr_data = await p.communicate()
+                if p.returncode == 0:
                     print("ffmpeg is available")
-                except FileNotFoundError as e:
+                else:
                     print("ffmpeg is not available")
                     print("downloading ffmpeg...")
                     proc = await asyncio.create_subprocess_shell(
