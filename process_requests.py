@@ -339,7 +339,8 @@ async def on_ready():
             if len(messages_to_process) > 0:
                 print("checking ffmpeg...")
                 p = await asyncio.create_subprocess_exec(
-                    ["ffmpeg", "-version"],
+                    "ffmpeg",
+                    ["-version"],
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
