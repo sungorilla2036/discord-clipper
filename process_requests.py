@@ -183,6 +183,8 @@ async def download_video(url, start, end, output, max_filesize_mb=None):
 
     stdout, stderr = await proc.communicate()
 
+    if stdout:
+        print(f"[stdout]\n{stdout.decode()}")
     if stderr:
         print(f"[stderr]\n{stderr.decode()}")
 
