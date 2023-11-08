@@ -152,6 +152,7 @@ async def submit_clip_to_db(source_url, start, end, title, clip_url):
 
 # Define a function to download a video from a url
 async def download_video(url, start, end, output, max_filesize_mb=None):
+    print(f"Downloading file {output}...")
     video = url
     if url.startswith("https://kick.com/video/"):
         response = requests.get(
@@ -183,6 +184,7 @@ async def download_video(url, start, end, output, max_filesize_mb=None):
 
     stdout, stderr = await proc.communicate()
 
+    print("Download command complete")
     if stdout:
         print(f"[stdout]\n{stdout.decode()}")
     if stderr:
@@ -321,7 +323,6 @@ async def on_ready():
             ]
 
             messages_to_process = []
-            ffmpeg_needed = False
             for message in messages:
                 if (
                     len(message.mentions) == 1
@@ -331,14 +332,9 @@ async def on_ready():
                     and message.role_mentions[0].name == client.user.name
                     and message.role_mentions[0].is_bot_managed()
                 ):
-                    if (
-                        "youtube.com" in message.content
-                        or "youtu.be" in message.content
-                    ):
-                        ffmpeg_needed = True
                     messages_to_process.append(message)
 
-            if ffmpeg_needed:
+            if len(messages_to_process) > 0:
                 print("checking ffmpeg...")
                 try:
                     subprocess.check_output(["ffmpeg", "-version"])
