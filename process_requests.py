@@ -339,7 +339,7 @@ async def on_ready():
                 try:
                     subprocess.check_output(["ffmpeg", "-version"])
                     print("ffmpeg is available")
-                except subprocess.CalledProcessError as e:
+                except FileNotFoundError as e:
                     print("ffmpeg is not available")
                     print("downloading ffmpeg...")
                     proc = await asyncio.create_subprocess_shell(
