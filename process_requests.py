@@ -338,15 +338,16 @@ async def on_ready():
 
             if len(messages_to_process) > 0:
                 print("checking ffmpeg...")
-                p = await asyncio.create_subprocess_exec(
-                    "ffmpeg -version",
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                )
-                stdout_data, stderr_data = await p.communicate()
-                if p.returncode == 0:
-                    print("ffmpeg is available")
-                else:
+                try:
+                    p = await asyncio.create_subprocess_exec(
+                        "ffmpeg -version",
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                    )
+                    stdout_data, stderr_data = await p.communicate()
+                    if p.returncode == 0:
+                        print("ffmpeg is available")
+                except FileNotFoundError as e:
                     print("ffmpeg is not available")
                     print("downloading ffmpeg...")
                     proc = await asyncio.create_subprocess_shell(
