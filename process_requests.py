@@ -350,7 +350,7 @@ async def on_ready():
                     len(message.mentions) == 1
                     and message.mentions[0].id == client.user.id
                 ):
-                    message_author = message.guild.getMember(message.author.id)
+                    message_author = message.guild.get_member(message.author.id)
                     for role in message_author.author.roles:
                         if role.name in ROLE_WHITELIST:
                             messages_to_process.append(message)
