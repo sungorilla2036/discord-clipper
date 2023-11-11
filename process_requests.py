@@ -5,10 +5,10 @@ import os
 import discord
 from datetime import datetime, timedelta
 import aiohttp
+from yt_dlp import YoutubeDL
 from urllib.parse import urlparse, parse_qs
 import hashlib
 import asyncio
-import ffmpeg_downloader as ffdl
 import subprocess
 import re
 
@@ -21,6 +21,8 @@ client = discord.Client(intents=intents)
 CHANNEL_WHITELIST = [
     id.strip() for id in os.getenv("CHANNEL_WHITELIST", "").split(",") if id
 ]
+ROLE_WHITELIST = [role.strip() for role in os.getenv("ROLE_WHITELIST", "").split(",") if role]
+VIDEO_CHANNEL_WHITELIST = [channel.strip() for channel in os.getenv("VIDEO_CHANNEL_WHITELIST", "").split(",") if channel]
 TOKEN = os.getenv("TOKEN")
 CLIPS_API_URL = os.getenv("API_URL")
 APIKEY = os.getenv("APIKEY")
@@ -161,6 +163,20 @@ async def download_video(url, start, end, output, max_filesize_mb=None):
         )
         res_json = response.json()
         video = res_json["source"]
+        channel = "https://kick.com/" + res_json["livestream"]["channel"]["slug"]
+        if not channel in VIDEO_CHANNEL_WHITELIST:
+            print('Channel is not in whitelist')
+            return False
+    else:
+        with YoutubeDL() as ydl:
+            try:
+                info = ydl.extract_info(video, download=False)
+                if not info.get('channel_url') in VIDEO_CHANNEL_WHITELIST and not ('uploader_url' in info and info.get('uploader_url') in VIDEO_CHANNEL_WHITELIST):
+                    print('Channel is not in whitelist')
+                    return False
+            except:
+                print('Error extracting video info')
+                return False
 
     args = [
         "yt-dlp",
@@ -190,6 +206,7 @@ async def download_video(url, start, end, output, max_filesize_mb=None):
         print(f"[stdout]\n{stdout.decode()}")
     if stderr:
         print(f"[stderr]\n{stderr.decode()}")
+    return True
 
 
 # Define an async function to upload a file to transfer.sh
@@ -262,39 +279,41 @@ async def process_message(message):
         # Generate a file name for the clip
         file_name = f"{file_hash}.mp4"
         # Download the video and create the clip
-        await download_video(video_url, start_time, end_time, file_name)
-        # Get the file size of the clip
-        file_size = os.path.getsize(file_name)
+        download_success = await download_video(video_url, start_time, end_time, file_name)
 
-        max_file_size = 25000000
+        if download_success:
+            # Get the file size of the clip
+            file_size = os.path.getsize(file_name)
 
-        boosts = message.guild.premium_subscription_count
+            max_file_size = 25000000
 
-        if boosts >= 14:
-            max_file_size = 100000000
-        elif boosts >= 7:
-            max_file_size = 50000000
+            boosts = message.guild.premium_subscription_count
 
-        # Check if the file size is within the limit
-        if file_size <= max_file_size:
-            print("Uploading clip directly to discord...")
-            # Upload the clip directly to discord
-            clip = discord.File(file_name)
-            # Send the message to the channel
-            sentMessage = await message.reply(reply_text, file=clip)
-            clip_url = sentMessage.attachments[0].url
-        else:
-            if file_size <= 200 * 1000 * 1000:
-                print("Uploading clip to catbox...")
-                clip_url = await upload_file_cb(file_name)
+            if boosts >= 14:
+                max_file_size = 100000000
+            elif boosts >= 7:
+                max_file_size = 50000000
+
+            # Check if the file size is within the limit
+            if file_size <= max_file_size:
+                print("Uploading clip directly to discord...")
+                # Upload the clip directly to discord
+                clip = discord.File(file_name)
+                # Send the message to the channel
+                sentMessage = await message.reply(reply_text, file=clip)
+                clip_url = sentMessage.attachments[0].url
             else:
-                print("Uploading clip to transfer.sh...")
-                # Upload the clip to transfer.sh
-                clip_url = await upload_file_tsh(file_name)
-            # Send the message to the channel
-            await message.reply(reply_text + "\n" + clip_url)
+                if file_size <= 200 * 1000 * 1000:
+                    print("Uploading clip to catbox...")
+                    clip_url = await upload_file_cb(file_name)
+                else:
+                    print("Uploading clip to transfer.sh...")
+                    # Upload the clip to transfer.sh
+                    clip_url = await upload_file_tsh(file_name)
+                # Send the message to the channel
+                await message.reply(reply_text + "\n" + clip_url)
 
-        await submit_clip_to_db(video_url, start_time, end_time, title, clip_url)
+            await submit_clip_to_db(video_url, start_time, end_time, title, clip_url)
 
     else:
         # Send an error message to the user
@@ -330,37 +349,11 @@ async def on_ready():
                 if (
                     len(message.mentions) == 1
                     and message.mentions[0].id == client.user.id
-                ) or (
-                    len(message.role_mentions) == 1
-                    and message.role_mentions[0].name == client.user.name
-                    and message.role_mentions[0].is_bot_managed()
                 ):
-                    messages_to_process.append(message)
-
-            if len(messages_to_process) > 0:
-                print("checking ffmpeg...")
-                try:
-                    p = await asyncio.create_subprocess_exec(
-                        "ffmpeg -version",
-                        stdout=asyncio.subprocess.PIPE,
-                        stderr=asyncio.subprocess.PIPE,
-                    )
-                    stdout_data, stderr_data = await p.communicate()
-                    if p.returncode == 0:
-                        print("ffmpeg is available")
-                except FileNotFoundError as e:
-                    print("ffmpeg is not available")
-                    print("downloading ffmpeg...")
-                    proc = await asyncio.create_subprocess_shell(
-                        "ffdl install",
-                        stdout=asyncio.subprocess.PIPE,
-                        stderr=asyncio.subprocess.PIPE,
-                    )
-                    stdout, stderr = await proc.communicate()
-                    if stdout:
-                        print(f"[stdout]\n{stdout.decode()}")
-                    if stderr:
-                        print(f"[stderr]\n{stderr.decode()}")
+                    for role in message.author.roles:
+                        if role.name in ROLE_WHITELIST:
+                            messages_to_process.append(message)
+                            break
 
             print(f"Processing {len(messages_to_process)} messages...")
             # Process each message
