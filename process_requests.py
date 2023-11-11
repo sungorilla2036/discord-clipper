@@ -13,6 +13,7 @@ import subprocess
 import re
 
 intents = discord.Intents.default()
+intents.members = True
 
 # Create a discord client
 client = discord.Client(intents=intents)
