@@ -264,7 +264,7 @@ async def process_message(message):
         if video_url == "latest":
             # Extract the video url, start time, end time, and title
             response = requests.get(
-                "https://kick.com/api/v1/channels/infrared", impersonate="chrome101"
+                "https://kick.com/api/v1/channels/infrared", impersonate="chrome110"
             )
             response_json_obj = response.json()
             video_url = (
