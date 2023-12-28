@@ -159,7 +159,7 @@ async def download_video(url, start, end, output, max_filesize_mb=None):
     video = url
     if url.startswith("https://kick.com/video/"):
         response = requests.get(
-            "https://kick.com/api/v1/video/" + url[23:], impersonate="chrome101"
+            "https://kick.com/api/v1/video/" + url[23:], impersonate="chrome110"
         )
         res_json = response.json()
         video = res_json["source"]
