@@ -257,11 +257,11 @@ async def upload_file_gofile(file_path):
         file_content = open(file_path, "rb")
         # create a multipart form data object
         data = aiohttp.FormData()
-        # add the file content as a field named "reqtype"
+
         data.add_field("file", file_content, filename=file_path)
         data.add_field("token", GOFILE_TOKEN)
-        # post the data to the catbox.moe API endpoint
-        resp = await session.post("https://api.gofile.io/uploadFile", data=data, headers={
+
+        resp = await session.post("https://store1.gofile.io/uploadFile", data=data, headers={
             "Token": GOFILE_TOKEN
         })
         # check if the response status is OK
