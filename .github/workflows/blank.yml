@@ -38,3 +38,4 @@ jobs:
           CHANNEL_WHITELIST: ${{ secrets.CHANNEL_WHITELIST }}
           ROLE_WHITELIST: ${{ secrets.ROLE_WHITELIST }}
           VIDEO_CHANNEL_WHITELIST: ${{ secrets.VIDEO_CHANNEL_WHITELIST }}
+          GOFILE_TOKEN: ${{ secrets.GOFILE_TOKEN }}

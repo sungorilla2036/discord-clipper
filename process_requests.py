@@ -28,6 +28,7 @@ TOKEN = os.getenv("TOKEN")
 CLIPS_API_URL = os.getenv("API_URL")
 APIKEY = os.getenv("APIKEY")
 INTERVAL_MINUTES = int(os.getenv("INTERVAL_MINUTES", "10"))
+GOFILE_TOKEN = os.getenv("GOFILE_TOKEN")
 
 
 def get_video_info(url):
@@ -247,6 +248,29 @@ async def upload_file_cb(file_path):
         else:
             # raise an exception with the response status
             raise Exception(f"Upload failed with status {resp.status}")
+        
+async def upload_file_gofile(file_path):
+    # create an aiohttp session
+    async with aiohttp.ClientSession() as session:
+        # open the file in binary mode
+        # read the file content
+        file_content = open(file_path, "rb")
+        # create a multipart form data object
+        data = aiohttp.FormData()
+        # add the file content as a field named "reqtype"
+        data.add_field("file", file_content, filename=file_path)
+        data.add_field("token", GOFILE_TOKEN)
+        # post the data to the catbox.moe API endpoint
+        resp = await session.post("https://api.gofile.io/uploadFile", data=data, headers={
+            "Token": GOFILE_TOKEN
+        })
+        # check if the response status is OK
+        if resp.status == 200:
+            data = await resp.json()
+            return data["data"]["downloadPage"]
+        else:
+            # raise an exception with the response status
+            raise Exception(f"Upload failed with status {resp.status}")
 
 
 # Define an async function to process a message that contains a clip command
@@ -309,7 +333,11 @@ async def process_message(message):
                 else:
                     print("Uploading clip to transfer.sh...")
                     # Upload the clip to transfer.sh
-                    clip_url = await upload_file_tsh(file_name)
+                    try:
+                        clip_url = await upload_file_tsh(file_name)
+                    except:
+                        print("Uploading clip to gofile...")
+                        clip_url = await upload_file_gofile(file_name)
                 # Send the message to the channel
                 await message.reply(reply_text + "\n" + clip_url)
 
