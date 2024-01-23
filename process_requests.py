@@ -165,19 +165,19 @@ async def download_video(url, start, end, output, max_filesize_mb=None):
         res_json = response.json()
         video = res_json["source"]
         channel = "https://kick.com/" + res_json["livestream"]["channel"]["slug"]
-        if not channel in VIDEO_CHANNEL_WHITELIST:
-            print('Channel is not in whitelist')
-            return False
-    else:
-        with YoutubeDL() as ydl:
-            try:
-                info = ydl.extract_info(video, download=False)
-                if not info.get('channel_url') in VIDEO_CHANNEL_WHITELIST and not ('uploader_url' in info and info.get('uploader_url') in VIDEO_CHANNEL_WHITELIST):
-                    print('Channel is not in whitelist')
-                    return False
-            except:
-                print('Error extracting video info')
-                return False
+    #     if not channel in VIDEO_CHANNEL_WHITELIST:
+    #         print('Channel is not in whitelist')
+    #         return False
+    # else:
+    #     with YoutubeDL() as ydl:
+    #         try:
+    #             info = ydl.extract_info(video, download=False)
+    #             if not info.get('channel_url') in VIDEO_CHANNEL_WHITELIST and not ('uploader_url' in info and info.get('uploader_url') in VIDEO_CHANNEL_WHITELIST):
+    #                 print('Channel is not in whitelist')
+    #                 return False
+    #         except:
+    #             print('Error extracting video info')
+    #             return False
 
     args = [
         "yt-dlp",
