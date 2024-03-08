@@ -181,7 +181,7 @@ async def download_video(url, start, end, output, max_filesize_mb=None):
 
     args = [
         "yt-dlp",
-        video,
+        f"'{video}'",
         "--download-sections",
         f"*{start}-{end}",
         "--force-keyframes-at-cuts",
