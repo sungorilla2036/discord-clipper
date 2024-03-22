@@ -200,7 +200,6 @@ async def download_video(url, start, end, output, max_filesize_mb=None):
         print(f"[stdout]\n{stdout.decode()}")
     if stderr:
         print(f"[stderr]\n{stderr.decode()}")
-        return False
     return True
 
 
