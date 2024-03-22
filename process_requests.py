@@ -268,79 +268,85 @@ async def upload_file_gofile(file_path):
 
 # Define an async function to process a message that contains a clip command
 async def process_message(message):
-    # Split the message by spaces
-    args = re.sub(r"\s+", " ", message.content).strip().split(maxsplit=4)
-    # Check if the message has four arguments
-    if len(args) == 5:
-        # Extract the video url, start time, end time, and title
-        video_url = args[1]
-        start_time = args[2]
-        end_time = args[3]
-        title = args[4]
-        reply_text = title
-        if video_url == "latest":
+    try:
+        # Split the message by spaces
+        args = re.sub(r"\s+", " ", message.content).strip().split(maxsplit=4)
+        # Check if the message has four arguments
+        if len(args) == 5:
             # Extract the video url, start time, end time, and title
-            response = requests.get(
-                "https://kick.com/api/v1/channels/infrared", impersonate="chrome110"
-            )
-            response_json_obj = response.json()
-            video_url = (
-                "https://kick.com/video/"
-                + response_json_obj["previous_livestreams"][0]["video"]["uuid"]
-            )
-            reply_text = f"{title} <{video_url}>"
-
-        file_hash = hashlib.md5(
-            (start_time + "-" + end_time + video_url).encode()
-        ).hexdigest()
-        # Generate a file name for the clip
-        file_name = f"{file_hash}.mp4"
-        # Download the video and create the clip
-        download_success = await download_video(video_url, start_time, end_time, file_name)
-
-        if download_success:
-            # Get the file size of the clip
-            file_size = os.path.getsize(file_name)
-
-            max_file_size = 25000000
-
-            boosts = message.guild.premium_subscription_count
-
-            if boosts >= 14:
-                max_file_size = 100000000
-            elif boosts >= 7:
-                max_file_size = 50000000
-
-            # Check if the file size is within the limit
-            if file_size <= max_file_size:
-                print("Uploading clip directly to discord...")
-                # Upload the clip directly to discord
-                clip = discord.File(file_name)
-                # Send the message to the channel
-                sentMessage = await message.reply(reply_text, file=clip)
-                clip_url = sentMessage.attachments[0].url
-            else:
-                if file_size <= 200 * 1000 * 1000:
-                    print("Uploading clip to catbox...")
-                    clip_url = await upload_file_cb(file_name)
+            video_url = args[1]
+            start_time = args[2]
+            end_time = args[3]
+            title = args[4]
+            reply_text = title
+            if video_url == "latest":
+                # Extract the video url, start time, end time, and title
+                response = requests.get(
+                    "https://kick.com/api/v1/channels/infrared", impersonate="chrome110"
+                )
+                response_json_obj = response.json()
+                video_url = (
+                    "https://kick.com/video/"
+                    + response_json_obj["previous_livestreams"][0]["video"]["uuid"]
+                )
+                reply_text = f"{title} <{video_url}>"
+    
+            file_hash = hashlib.md5(
+                (start_time + "-" + end_time + video_url).encode()
+            ).hexdigest()
+            # Generate a file name for the clip
+            file_name = f"{file_hash}.mp4"
+            # Download the video and create the clip
+            download_success = await download_video(video_url, start_time, end_time, file_name)
+    
+            if download_success:
+                # Get the file size of the clip
+                file_size = os.path.getsize(file_name)
+    
+                max_file_size = 25000000
+    
+                boosts = message.guild.premium_subscription_count
+    
+                if boosts >= 14:
+                    max_file_size = 100000000
+                elif boosts >= 7:
+                    max_file_size = 50000000
+    
+                # Check if the file size is within the limit
+                if file_size <= max_file_size:
+                    print("Uploading clip directly to discord...")
+                    # Upload the clip directly to discord
+                    clip = discord.File(file_name)
+                    # Send the message to the channel
+                    sentMessage = await message.reply(reply_text, file=clip)
+                    clip_url = sentMessage.attachments[0].url
                 else:
-                    print("Uploading clip to transfer.sh...")
-                    # Upload the clip to transfer.sh
-                    try:
-                        clip_url = await upload_file_tsh(file_name)
-                    except:
-                        print("Uploading clip to gofile...")
-                        clip_url = await upload_file_gofile(file_name)
-                # Send the message to the channel
-                await message.reply(reply_text + "\n" + clip_url)
-
-            await submit_clip_to_db(video_url, start_time, end_time, title, clip_url)
-
-    else:
-        # Send an error message to the user
-        await message.reply(
-            "Invalid command. Please use <video_url> <start_time> <end_time> <title[tag1][tag2]>"
-        )
+                    if file_size <= 200 * 1000 * 1000:
+                        print("Uploading clip to catbox...")
+                        clip_url = await upload_file_cb(file_name)
+                    else:
+                        print("Uploading clip to transfer.sh...")
+                        # Upload the clip to transfer.sh
+                        try:
+                            clip_url = await upload_file_tsh(file_name)
+                        except:
+                            print("Uploading clip to gofile...")
+                            clip_url = await upload_file_gofile(file_name)
+                    # Send the message to the channel
+                    await message.reply(reply_text + "\n" + clip_url)
+    
+                await submit_clip_to_db(video_url, start_time, end_time, title, clip_url)
+    
+        else:
+            # Send an error message to the user
+            await message.reply(
+                "Invalid command. Please use <video_url> <start_time> <end_time> <title[tag1][tag2]>"
+            )
+    except:
+        try:
+            await message.reply("Error: Failed to process command.")
+        except:
+            return
 
 
 # Define an event handler for when the bot is ready
