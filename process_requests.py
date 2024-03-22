@@ -158,13 +158,6 @@ async def submit_clip_to_db(source_url, start, end, title, clip_url):
 async def download_video(url, start, end, output, max_filesize_mb=None):
     print(f"Downloading file {output}...")
     video = url
-    if url.startswith("https://kick.com/video/"):
-        response = requests.get(
-            "https://kick.com/api/v1/video/" + url[23:], impersonate="chrome110"
-        )
-        res_json = response.json()
-        video = res_json["source"]
-        channel = "https://kick.com/" + res_json["livestream"]["channel"]["slug"]
     #     if not channel in VIDEO_CHANNEL_WHITELIST:
     #         print('Channel is not in whitelist')
     #         return False
@@ -207,6 +200,7 @@ async def download_video(url, start, end, output, max_filesize_mb=None):
         print(f"[stdout]\n{stdout.decode()}")
     if stderr:
         print(f"[stderr]\n{stderr.decode()}")
+        return False
     return True
 
 
