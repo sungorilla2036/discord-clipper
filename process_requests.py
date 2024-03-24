@@ -180,7 +180,9 @@ async def download_video(url, start, end, output, max_filesize_mb=None):
         "--force-keyframes-at-cuts",
         "-o",
         output,
-        "--merge-output-format",
+        "-S",
+        "vcodec:h264,res,acodec:m4a",
+        "--recode",
         "mp4",
     ]
 
